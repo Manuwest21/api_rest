@@ -1,0 +1,15 @@
+artifact_uri: file:///home/utilisateur/Documents/new_api_ml_fin/modele_ml_api/mlruns/0/f5f420edae9c4991b8a01abaceb80fbd/artifacts
+end_time: 1713882366151
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: f5f420edae9c4991b8a01abaceb80fbd
+run_name: whimsical-tern-354
+run_uuid: f5f420edae9c4991b8a01abaceb80fbd
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1713882363441
+status: 3
+tags: []
+user_id: utilisateur
