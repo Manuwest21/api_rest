@@ -19,7 +19,7 @@ class InputData(BaseModel):
     acteur1: str
     acteur2: str
     acteur3: str
-
+###111#
 # Charger le modèle pickle
 with open('modele_4_ml.pkl', 'rb') as f:
     model = pickle.load(f)
