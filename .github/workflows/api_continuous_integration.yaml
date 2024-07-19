@@ -16,6 +16,7 @@ on:
             - 'api_rest/**'
             - '.github/workflows/api_continuous_integration.yaml'
     workflow_call:
+        #without other thing#
 
 # jobs definition
 jobs:
