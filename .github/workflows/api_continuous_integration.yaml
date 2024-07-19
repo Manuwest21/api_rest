@@ -4,14 +4,14 @@ name: Fastapi Continuous Integration workflow
 on:
     push:
         branches:
-            - 'dev5'
+            - 'dev6'
         paths:
             - 'api_rest/**'
             - '.github/workflows/api_continuous_integration.yaml'
     pull_request:
         types: [opened, synchronize, reopened]
         branches:
-            - dev5
+            - dev6
         paths:
             - 'api_rest/**'
             - '.github/workflows/api_continuous_integration.yaml'
