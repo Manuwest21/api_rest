@@ -9,6 +9,6 @@ df = pd.read_sql_query("SELECT * FROM metrics", connexion)
 
 # Exportation du DataFrame vers un fichier CSV
 df.to_csv("metrics.csv", index=False)
-
+#il en faudra plus#
 # Fermeture de la connexion à la base de données SQLite
 connexion.close()
