@@ -49,4 +49,4 @@ jobs:
               run: pycodestyle --statistics --ignore=E501,E712 api
               continue-on-error: true
             - name: Run Test and Coverage # running tests
-              run: pytest api_rest --cov-fail-under=80 -vv
+              run: pytest api_rest --cov-fail-under=80 -vv"##
