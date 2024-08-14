@@ -1,0 +1,43 @@
+[run]
+branch = True
+source =
+    .
+
+[report]
+excludelines =
+    # Exclude standard library imports
+    import .*
+    from .*
+    # Exclude if the file contains no testable code
+    def repr
+    if name == .main.:
+
+omit =
+    # Exclude all CSV, pkl, png, ipynb files, etc.
+    /.csv
+    /.pkl
+    /.ipynb
+    /.png
+    /.joblib
+    /.md
+    /.db
+    /catboost_info/
+    /liu/
+    */_pycache/*
+    /test/  # Exclude this directory if not relevant for tests
+
+    # Exclude specific scripts not mentioned in tests
+    bddencsv.py
+    creation_bdd.py
+    main.py
+    metrics.csv
+    modelisation.py
+    preprocessing.py
+
+    # Include only the relevant files for testing
+    master1.py
+    modelisation1.py
+    utils22.py
+    utils2.py
+    uni_test.py
+    test_mainnnnnnnn.py

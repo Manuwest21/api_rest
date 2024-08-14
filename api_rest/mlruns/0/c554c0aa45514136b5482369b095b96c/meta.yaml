@@ -1,0 +1,15 @@
+artifact_uri: file:///home/utilisateur/Documents/new_api_ml_fin/modele_ml_api/mlruns/0/c554c0aa45514136b5482369b095b96c/artifacts
+end_time: 1713880749376
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: c554c0aa45514136b5482369b095b96c
+run_name: popular-grouse-535
+run_uuid: c554c0aa45514136b5482369b095b96c
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1713880749366
+status: 3
+tags: []
+user_id: utilisateur

@@ -1,0 +1,15 @@
+artifact_uri: file:///home/utilisateur/Documents/new_api_ml_fin/modele_ml_api/mlruns/0/0450bb0a90334a44a4f6c41a8a4de422/artifacts
+end_time: 1713883994179
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 0450bb0a90334a44a4f6c41a8a4de422
+run_name: able-bee-678
+run_uuid: 0450bb0a90334a44a4f6c41a8a4de422
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1713883991391
+status: 3
+tags: []
+user_id: utilisateur
