@@ -1,3 +1,6 @@
 echo "pit/lib/python3.10/site-packages/catboost/_catboost.so.gz" >> .gitignore
 echo "pit/lib/python3.10/site-packages/pyarrow/libarrow.so.1500" >> .gitignore
 api_rest/liu/lib/python3.10/site-packages/pyarrow/libarrow.so.1500
+api_rest/liu/lib/python3.10/site-packages/catboost/_catboost.s
+pit/lib/python3.10/site-packages/catboost/_catboost.so.gz
+pit/lib/python3.10/site-packages/pyarrow/libarrow.so.1500
