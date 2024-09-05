@@ -4,7 +4,11 @@ import pickle
 import pandas as pd
 import joblib
 from utils2 import has_access
-
+import mlflow
+from typing import Dict, Any
+import sqlite3
+from sklearn.metrics import mean_squared_error, r2_score
+from fastapi import HTTPException
 # Charger le pipeline depuis le fichier
 pipe = joblib.load('pipeline_model.joblib')
 # Créer une classe pour les données d'entrée
@@ -26,7 +30,16 @@ with open('modele_4_ml.pkl', 'rb') as f:
 
 # Créer un routeur pour les endpoints de modelisation1
 router = APIRouter()
+def get_db_connection():
+    try:
+        conn = sqlite3.connect('predictions.db')
+        return conn
+    except sqlite3.Error as e:
+        raise HTTPException(status_code=500, detail=f"Database connection failed: {str(e)}")
 
+
+
+mlflow.set_experiment("visualisation_predictions_cinéma")
 # Définir une route pour effectuer des prédictions
 @router.post("/predict/", dependencies=[Depends(has_access)])
 async def predict(data: InputData):
@@ -38,7 +51,19 @@ async def predict(data: InputData):
 
     # Faire la prédiction avec le modèle
     prediction = pipe['log_reg'].predict(input_processed)
-
+    with mlflow.start_run() as run:
+        mlflow.log_params(data.dict())  # Enregistrer les paramètres d'entrée
+        mlflow.log_metric("prediction", prediction[0])  # Enregistrer la prédiction
+    
+    
+    # Enregistrer la prédiction et les métriques dans SQLite
+    conn = get_db_connection()
+    conn.execute('''
+    INSERT INTO predictions (country, genre, numero_semaine, duree, prediction)
+    VALUES (?, ?, ?, ?, ?)
+    ''', (data.country, data.genre, data.numero_semaine, data.durée, round(prediction[0])))
+    conn.commit()
+    conn.close()
     # Retourner la prédiction
     return {"prediction": prediction[0]}
 
