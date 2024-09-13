@@ -9,6 +9,7 @@ from typing import Dict, Any
 import sqlite3
 from sklearn.metrics import mean_squared_error, r2_score
 from fastapi import HTTPException
+from typing import Dict, Any
 # Charger le pipeline depuis le fichier
 pipe = joblib.load('pipeline_model.joblib')
 # Créer une classe pour les données d'entrée
@@ -47,10 +48,11 @@ async def predict(data: InputData):
     input_df = pd.DataFrame([data.dict()])
 
     # Effectuer le prétraitement sur les données d'entrée
-    input_processed = pipe['preprocessor'].transform(input_df)
+    # input_processed = pipe['preprocessor'].transform(input_df)
 
-    # Faire la prédiction avec le modèle
-    prediction = pipe['log_reg'].predict(input_processed)
+    # # Faire la prédiction avec le modèle
+    #  prediction = pipe['log_reg'].predict(input_processed)
+    prediction = model.predict(input_df)
     with mlflow.start_run() as run:
         mlflow.log_params(data.dict())  # Enregistrer les paramètres d'entrée
         mlflow.log_metric("prediction", prediction[0])  # Enregistrer la prédiction
