@@ -1,148 +1,109 @@
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import OneHotEncoder, StandardScaler, OrdinalEncoder, MinMaxScaler
-from sklearn.compose import ColumnTransformer
-from catboost import CatBoostRegressor
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-from catboost import CatBoostRegressor
+from fastapi import APIRouter, Depends
+from pydantic import BaseModel
+import pickle
 import pandas as pd
-from preprocessing import preprocessing
+import joblib
+import os
+from securite import has_access
 import mlflow
-import pickle 
+from typing import Dict, Any
 import sqlite3
+from sklearn.metrics import mean_squared_error, r2_score
+from fastapi import HTTPException
+from typing import Dict, Any
+# Charger le pipeline depuis le fichier
+# pipe = joblib.load('pipeline_model.joblib')
+# Créer une classe pour les données d'entrée
+file_path_pkl = os.path.join('construction_modèle_Ml', 'modele_4_ml.pkl')
+file_path_joblib=os.path.join('construction_modèle_Ml', 'pipeline_model.joblib')
+class InputData(BaseModel):
+    country: str
+    genre: str
+    public: str
+    distributeur: str
+    numero_semaine: int
+    durée: int
+    directeur: str
+    acteur1: str
+    acteur2: str
+    acteur3: str
+###111#
+# Charger le modèle pickle
+with open('modele_4_ml.pkl', 'rb') as f:
+    model = pickle.load(f)
+pipe = joblib.load(file_path_joblib)
+# Créer un routeur pour les endpoints de modelisation1
+router = APIRouter()
+def get_db_connection():
+    try:
+        conn = sqlite3.connect('predictions.db')
+        return conn
+    except sqlite3.Error as e:
+        raise HTTPException(status_code=500, detail=f"Database connection failed: {str(e)}")
 
-def load_training_data(df):
-    # Charger les données d'entraînement depuis la base de données ou un fichier CSV
-    # Assurez-vous d'ajuster ces lignes en fonction de votre cas d'utilisation
-    # Exemple : charger les données à partir d'un fichier CSV
-    # df = pd.read_csv('training_data.csv')
-    train_df = df[df['date'] < 2019]
-    test_df = df[df['date'] >= 2019]
-    train_df.drop(['date'],axis=1)
-    test_df.drop(['date'],axis=1)
-# Diviser les ensembles en caractéristiques (X) et cible (y)
-    X_train = train_df.drop('nbre_entrees', axis=1)  # Remplacez 'cible' par le nom de la colonne de votre cible
-    y_train = train_df['nbre_entrees']
-    # Diviser les données en features (X) et target (y)
-    # X_train = df.drop('nbre_entrees', axis=1)  # Remplacez 'cible' par le nom de la colonne de votre cible
-    # y_train = df['nbre_entrees']
 
-    return X_train, y_train
 
-def train_model(X_train, y_train):
-    # Définir les caractéristiques ordinales et numériques
-    ordinal_features = ['country', 'genre', 'public', 'distributeur', 'numero_semaine']
-    numerical_features = ['durée', 'directeur', 'acteur1', 'acteur2', 'acteur3']
+mlflow.set_experiment("visualisation_predictions_cinéma")
+# Définition d'une route pour effectuer des prédictions, on va se référer à celle-ci en accédant à l'interface mlflow pour suivre les performances en temps réel. 
 
-    # Définir les encodeurs pour les caractéristiques ordinales et numériques
-    categorical_transformer = OneHotEncoder(sparse_output=True, handle_unknown='ignore')
-    numerical_transformer = MinMaxScaler()
+@router.post("/predict/", dependencies=[Depends(has_access)])
+async def predict(data: InputData):
+    # Créer un dataframe à partir des données d'entrée
+    input_df = pd.DataFrame([data.dict()])
 
-    # Créer le préprocesseur de colonnes
-    preprocessor = ColumnTransformer(
-        transformers=[
-            ('other_cat', categorical_transformer, ordinal_features),
-            ('num', numerical_transformer, numerical_features)
-        ],
-        remainder='drop'
-    )
+    # Effectuer le prétraitement sur les données d'entrée
+    # input_processed = pipe['preprocessor'].transform(input_df)
 
-    # Créer le modèle CatBoostRegressor
-    log_reg = CatBoostRegressor()
-
-    # Créer le pipeline
-    pipe = Pipeline([
-         ('preprocessor', preprocessor),
-         ('log_reg', log_reg)
-    ])
-
-    # Entraîner le pipeline
-    pipe.fit(X_train, y_train)
-
-    return pipe
-
-def modelisation(connection, run_name):
-    # Charger les données
-    df = pd.read_csv('new_nettoyage.csv')  # Charger les données à partir du fichier CSV
-    df = preprocessing(df)
-
-    # Charger les données d'entraînement
-    X_train, y_train = load_training_data(df)
-
-    # Prétraiter les données d'entraînement
-
-    # Entraîner le modèle
-    trained_model = train_model(X_train, y_train)
-    
-    # Évaluer le modèlesss
-    # Ces étapes peuvent être ajoutées ici si nécessaire
-    with open('modele_5_ml.pkl', 'wb') as f:
-        pickle.dump(trained_model, f)
-    # Configurer MLflow
-        
-    y_pred = trained_model.predict(X_train)
-    mae = mean_absolute_error(y_train, y_pred)
-    mse = mean_squared_error(y_train, y_pred)
-    r2 = r2_score(y_train, y_pred)
-    
-    # Enregistrer les métriques avec MLflow
+    # # Faire la prédiction avec le modèle
+    #  prediction = pipe['log_reg'].predict(input_processed)
+    prediction = pipe.predict(input_df)
+    prediction_int = int(prediction[0])
     with mlflow.start_run() as run:
-        mlflow.log_metric("mae", mae)
-        mlflow.log_metric("mse", mse)
-        mlflow.log_metric("r2", r2)
+        mlflow.log_params(data.dict())  # Enregistrer les paramètres d'entrée
+        mlflow.log_metric("prediction", prediction[0])  # Enregistrer la prédiction
     
-    modele=12
-    # Intégrer les métriques dans votre base de données SQLite3
-    if connection:
-        cursor = connection.cursor()
-        cursor.execute("INSERT INTO metrics (nom_modele,mae, mse, r2) VALUES (?, ?, ?,?)", (modele,mae, mse, r2))
-        connection.commit()
-        cursor.close()
-    # print type(trained_model)
+    
+    # Enregistrer la prédiction et les métriques dans SQLite
+    conn = get_db_connection()
+    conn.execute('''
+    INSERT INTO predictions (country, genre, numero_semaine, duree, prediction)
+    VALUES (?, ?, ?, ?, ?)
+    ''', (data.country, data.genre, data.numero_semaine, data.durée, round(prediction[0])))
+    conn.commit()
+    conn.close()
+    # Retourner la prédiction
+    return {"prediction": prediction[0]}
 
-    # Enregistrer le modèle dans MLflow
-    mlflow.sklearn.log_model(trained_model, "trained_model1")
+# Exporter le routeur
 
-        
-#     mlflow.set_tracking_uri('http://localhost:5000')
-#     mlflow.set_experiment(run_name)
+
+
+
+
+
+
+@router.post("/predict/", dependencies=[Depends(has_access)])
+async def predict(data: InputData):
+    # Crée un dataframe à partir des données d'entrée
+    input_df = pd.DataFrame([data.dict()])
 
     
-#     with mlflow.start_run() as run:
-     
-#         mlflow.log_param("run_name", run_name)
-
-#         mlflow.sklearn.log_model(trained_model, "trained_model")
-
-#     return run.info.run_id
-
-if __name__ == "__main__":
-    connection = sqlite3.connect("bdd.db")  # Connection à votre base de données
-    run_id = modelisation(connection, "run_name")
-
-
-
-
-
-# if __name__ == "__main__":
-#     df = pd.read_csv('new_nettoyage.csv')  # Charger les données à partir du fichier CSV
-#     df= preprocessing(df)
-#     X_train, y_train = load_training_data(df)  # Charger les données d'entraînement
-
-#     # Prétraiter les données d'entraînement
-   
-
-#     # Entraîner le modèle
-#     trained_model = train_model(X_train, y_train)
-
-
-
-# if __name__ == "__main__":
-#     # Charger les données d'entraînement depuis la base de données ou un fichier CSV
-#     # Assurez-vous de remplacer ces lignes par le chargement de vos données
-#     X_train, y_train = load_training_data(df)
-
-#     # Prétraiter les données d'entraînement
-#     X_train_processed = preprocessing(X_train)
-
-#     # Entraîner le modèle
-#     trained_model = train_model(X_train_processed, y_train)
+    # Faire la prédiction avec le modèle
+    prediction = model.predict(input_df)
+    with mlflow.start_run() as run:
+    # Enregistre les paramètres d'entrée
+        mlflow.log_params(data.dict())  
+    # Enregistre la prédiction
+        mlflow.log_metric("prediction", prediction[0])  
+    
+    
+    # Enregistrement de la prédiction et les métriques dans SQLite
+    conn = get_db_connection()
+    conn.execute('''
+    INSERT INTO predictions (country, genre, numero_semaine, duree, prediction)
+    VALUES (?, ?, ?, ?, ?)
+    ''', (data.country, data.genre, data.numero_semaine, data.durée, round(prediction[0])))
+    conn.commit()
+    conn.close()
+    # Retourne la prédiction à l'utilisateur de l'API
+    return {"prediction": prediction[0]}

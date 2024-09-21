@@ -2,5 +2,10 @@
   "test_main.py::test_predict_with_token",
   "test_main.py::test_predict_without_token",
   "test_main.py::test_token_generation",
-  "test_main.py::test_token_generation_incorrect_credentials"
+  "test_main.py::test_token_generation_incorrect_credentials",
+  "tests/test_main.py::test_predict_with_invalid_data_types",
+  "tests/test_main.py::test_predict_without_token",
+  "tests/test_main.py::test_token_generation",
+  "tests/test_main.py::test_token_generation_incorrect_credentials",
+  "uni_test.py::TestPredictEndpoint::test_predict_without_token"
 ]
