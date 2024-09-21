@@ -11,12 +11,11 @@ on:
     pull_request:
         types: [opened, synchronize, reopened]
         branches:
-            - dev6
+            - dev11
         paths:
             - 'api_rest/**'
             - '.github/workflows/api_continuous_integration.yaml'
     workflow_call:
-        #without other thing#
 
 # jobs definition
 jobs:
@@ -38,10 +37,8 @@ jobs:
                 python-version: '3.10'
             - name: Check Python version # checking the python version to see if 3.x is installed.
               run: python --version
-            - name: List files
-              run: ls -R
             - name: Install requirements # install application requirements
-              run: pip install -r ./api_rest/requirements.txt
+              run: pip install -r api/requirements.txt
             - name: Install Bandit
               run: pip install bandit
             - name: Run Security Check
@@ -51,4 +48,4 @@ jobs:
               run: pycodestyle --statistics --ignore=E501,E712 api
               continue-on-error: true
             - name: Run Test and Coverage # running tests
-              run: pytest api_rest --cov-fail-under=80 -vv"##
+              run: pytest api_rest --cov-fail-under=80 -vv
