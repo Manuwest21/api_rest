@@ -3,67 +3,70 @@ name: Build and Deploy Docker Image to Azure Container Registry and Azure Contai
 on:
   push:
     branches:
-      - dev6  # Changez en fonction de la branche que vous utilisez pour déployer
+      - dev6                                                     # Déclenche le workflow lors d'un push sur la branche 'dev6'
 
 jobs:
-#   health-check-job:
-#         uses: django_continuous_integration.yaml
-#         secrets: inherit
-  deploy:
-    runs-on: ubuntu-latest
+  deploy:                                                        # Job de déploiement
+    runs-on: ubuntu-latest                                       # Utilise l'environnement Ubuntu le plus récent
     env:
-      AZURE_CONTAINER_REGISTRY: djangofinal.azurecr.io  # Nom de votre ACR
-      AZURE_CONTAINER_NAME: application-django-test
-      RESOURCE_GROUP: RG_Devries1
-      IMAGE_NAME: westmanu21/appli-django  # Nom de l'image Docker à pousser
-      ACR_USERNAME: ${{ secrets.AZURE_ACR_USERNAME }}  # Nom d'utilisateur ACR
-      ACR_PASSWORD: ${{ secrets.AZURE_ACR_PASSWORD }}  # Mot de passe ACR
-      AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}  # Informations d'identification Azure
+      AZURE_CONTAINER_REGISTRY: djangofinal.azurecr.io           # URL de l'Azure Container Registry
+      AZURE_CONTAINER_NAME: application-django-test              # Nom de l'instance de conteneur
+      RESOURCE_GROUP: RG_Devries1                                # Groupe de ressources Azure
+      IMAGE_NAME: westmanu21/appli-django                        # Nom de l'image Docker à pousser
+      ACR_USERNAME: ${{ secrets.AZURE_ACR_USERNAME }}            # Nom d'utilisateur pour l'ACR
+      ACR_PASSWORD: ${{ secrets.AZURE_ACR_PASSWORD }}            # Mot de passe pour l'ACR
+      AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}        # Informations d'identification Azure
 
     steps:
-      - name: Checkout code
+      - name: Load environment variables                         # Charger les variables d'environnement de .env
+        run: |
+          echo "Loading environment variables from .env"
+          set -a  # Exporter toutes les variables
+          source .env  # Charger les variables du fichier .env
+          set +a  # Désactiver l'exportation
+      - name: Checkout code                                      # Récupère le code à partir du dépôt
         uses: actions/checkout@v3
 
-      - name: Log in to Azure Container Registry
+      - name: Log in to Azure Container Registry                 # Connexion à l'ACR
         run: echo "${{ secrets.AZURE_ACR_PASSWORD }}" | docker login $AZURE_CONTAINER_REGISTRY -u "${{ secrets.AZURE_ACR_USERNAME }}" --password-stdin
 
-      - name: Build Docker image
+      - name: Build Docker image                                 # Construction de l'image Docker
         run: docker build -t $AZURE_CONTAINER_REGISTRY/$IMAGE_NAME .
 
-      - name: Push Docker image to Azure Container Registry
+      - name: Push Docker image to Azure Container Registry      # Pousse l'image Docker vers l'ACR
         run: docker push $AZURE_CONTAINER_REGISTRY/$IMAGE_NAME
 
-      - name: Azure Login
+      - name: Azure Login                                       # Connexion à Azure
         uses: azure/login@v1
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          creds: ${{ secrets.AZURE_CREDENTIALS }}                # Utilise les informations d'identification sécurisées
 
-      - name: Remove existing Azure Container Instance if exists
+      - name: Remove existing Azure Container Instance if exists # Supprime l'instance existante si elle existe
         run: |
           if az container show --resource-group $RESOURCE_GROUP --name $AZURE_CONTAINER_NAME --output none; then
-            echo "Instance exists, proceeding to delete..."
+            echo "Instance exists, proceeding to delete..."  # Annonce de la suppression
             az container delete --resource-group $RESOURCE_GROUP --name $AZURE_CONTAINER_NAME --yes
           else
-            echo "Instance does not exist, skipping deletion..."
+            echo "Instance does not exist, skipping deletion..."  # Pas d'instance à supprimer
           fi
 
-      - name: Wait for Azure Container Instance to be deleted
+      - name: Wait for Azure Container Instance to be deleted    # Attente de la suppression de l'instance
         run: |
           while az container show --resource-group $RESOURCE_GROUP --name $AZURE_CONTAINER_NAME --output none; do
-            echo "Waiting for container to be deleted..."
-            sleep 10
+            echo "Waiting for container to be deleted..."  # Boucle d'attente
+            sleep 10  # Pause de 10 secondes
           done
 
-      - name: Create new Azure Container Instance
+      - name: Create new Azure Container Instance                # Création d'une nouvelle instance de conteneur
         run: |
           az container create \
             --resource-group $RESOURCE_GROUP \
             --name $AZURE_CONTAINER_NAME \
             --image $AZURE_CONTAINER_REGISTRY/$IMAGE_NAME \
-            --cpu 1 \
-            --memory 1 \
-            --ports 8000 \
-            --ip-address public \
-            --restart-policy Always \
-            --registry-username $ACR_USERNAME \
-            --registry-password $ACR_PASSWORD
+            --cpu 1 \  # Spécifie 1 unité de CPU
+            --memory 1 \  # Spécifie 1 Go de mémoire
+            --ports 8000 \  # Ouvre le port 8000
+            --ip-address public \  # Configure l'adresse IP publique
+            --restart-policy Always \  # Redémarre toujours l'instance si elle échoue
+            --registry-username $ACR_USERNAME \  # Nom d'utilisateur de l'ACR pour l'authentification
+            --registry-password $ACR_PASSWORD  # Mot de passe de l'ACR pour l'authentification
