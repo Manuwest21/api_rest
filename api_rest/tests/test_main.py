@@ -61,7 +61,7 @@ def test_predict_with_invalid_data_types():
         "acteur2": "Acteur B",
         "acteur3": "Acteur C"
     })
-    assert response..status_code == 403  # Unprocessable Entity  status_code == 422
+    assert response.status_code == 403  # Unprocessable Entity  status_code == 422
     assert "value is not a valid integer" in response.json()["detail"][0]["msg"]
 
     # Test avec une chaîne au lieu d'un int pour durée
