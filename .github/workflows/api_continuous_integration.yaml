@@ -1,54 +1,53 @@
-name: Fastapi Continuous Integration workflow
+name: Fastapi Continuous Integration workflow               # Nom du workflow de CI pour FastAPI       
 
-# triggers for our workflow
-on:
-    push:
+on:                                                         # déclaration des condition du déclenchement de notre workflow workflow
+    push:                                                   # Déclenchement lors d'un push sur la branche 'dev16'
         branches:
             - 'dev16'
-        paths:
+        paths:                                              # Se déclenche si des fichiers spécifiques sont modifiés
             - 'api_rest/**'
             - '.github/workflows/api_continuous_integration.yaml'
-    pull_request:
+    pull_request:                                           # Déclenchement lors d'une pull request vers 'dev6'
         types: [opened, synchronize, reopened]
         branches:
             - dev6
-        paths:
+        paths:                                              # Même condition de fichiers modifiés que pour le push
             - 'api_rest/**'
             - '.github/workflows/api_continuous_integration.yaml'
-    workflow_call:
-        #without other thing#
+    workflow_call:                                          # Permet d'appeler manuellement le workflow
 
-# jobs definition
 jobs:
-    health-check-job: # health check job for testing and code formatting check
-        runs-on: ubuntu-latest # os for running the job
+    health-check-job:                                       # Job pour vérification du code et des tests
+        runs-on: ubuntu-latest                              # Utilise l'environnement Ubuntu pour exécuter les actions
         steps:
-            - name: Checkout code # checking out the code at current commit that triggers the workflow
+            - name: Checkout code                           # Récupère le code source de la branche active
               uses: actions/checkout@v2
-            - name: Cache dependency # caching dependency will make our build faster.
+            - name: Cache dependency                        # Cache les dépendances pour accélérer l'exécution
               uses: actions/cache@v2
               with:
                   path: ~/.cache/pip
                   key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
                   restore-keys: |
                       ${{ runner.os }}-pip-
-            - name: Setup python environment # setting python environment to 3.x
+            - name: Setup python environment                # Installe Python Python 3.11.9
               uses: actions/setup-python@v2
               with:
                 python-version: '3.10'
-            - name: Check Python version # checking the python version to see if 3.x is installed.
+            - name: Check Python version                    # Vérifie la version de Python installée
               run: python --version
-            - name: List files
+            - name: List files                              # Liste tous les fichiers présents dans le répertoire
               run: ls -R
-            - name: Install requirements # install application requirements
+            - name: Install requirements                    # Installe les dépendances du projet
               run: pip install -r ./api_rest/requirements.txt
-            - name: Install Bandit
+            - name: Install Bandit                          # Installe Bandit pour vérifier la sécurité du code
               run: pip install bandit
-            - name: Run Security Check
+            - name: Run Security Check                      # Exécute Bandit pour détecter les vulnérabilités
               run: bandit -r api_rest
-              continue-on-error: true
-            - name: Check Syntax # check code formatting
+              continue-on-error: true                       # Continue même en cas d'erreur
+            - name: Check Syntax                            # Vérifie la syntaxe du code avec pycodestyle
               run: pycodestyle --statistics --ignore=E501,E712 api
-              continue-on-error: true
-            - name: Run Test and Coverage # running tests
-              run: pytest api_rest --cov-fail-under=80 -vv"##
+              continue-on-error: true                       # Ignore les erreurs de style de codage
+            - name: Run Test and Coverage                   
+              run: pytest api_rest --cov-fail-under=80 -vv  
+              #  Exécute les tests unitaires avec pytest et vérifie la couverture
+               # Lance les tests Pytest sur 'api_rest', échoue si la réussite de couverture est inférieure à 80%
