@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 from jose import jwt
 import sys
 import os
-from modelisation import InputData
+from api_rest.modelisation import InputData
 
 # Ajouter le répertoire parent au sys.path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
