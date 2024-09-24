@@ -1,6 +1,6 @@
 [run]
 branch = True
-source =
+source = api_rest
     .
 
 [report]
@@ -31,8 +31,7 @@ omit =
     creation_bdd.py
     main.py
     metrics.csv
-    modelisation.py
-    preprocessing.py
+    
 
     # Include only the relevant files for testing
     master1.py
@@ -41,3 +40,6 @@ omit =
     utils2.py
     uni_test.py
     test_mainnnnnnnn.py
+    modelisation.py
+    preprocessing.py
+    securite.py
