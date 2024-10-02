@@ -15,11 +15,23 @@ from typing import Annotated
 from fastapi.responses import FileResponse
 from fastapi.responses import HTMLResponse
 import subprocess
-
+import sentry_sdk
 from celery_tasks import run_drift_script
 # Charger le pipeline depuis le fichier
 # pipe = joblib.load('pipeline_model.joblib')
 # Créer une classe pour les données d'entrée
+sentry_sdk.init(
+    dsn="https://29402a8f399496504f9eb69c6453a0a6@o4507447356620800.ingest.de.sentry.io/4508039867859024",
+    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for tracing.
+    traces_sample_rate=1.0,
+    # Set profiles_sample_rate to 1.0 to profile 100%
+    # of sampled transactions.
+    # We recommend adjusting this value in production.
+    profiles_sample_rate=1.0,
+)
+
+
 file_path_pkl = os.path.join('construction_modèle_Ml', 'modele_4_ml.pkl')
 file_path_joblib=os.path.join('construction_modèle_Ml', 'pipeline_model.joblib')
 
@@ -109,6 +121,7 @@ mlflow.set_tracking_uri('mlruns')
 
 @router.post("/predict/", dependencies=[Depends(has_access)])
 async def predict(data: InputData):
+    
     # Créer un dataframe à partir des données d'entrée
     input_df = pd.DataFrame([data.dict()])
 
@@ -124,6 +137,7 @@ async def predict(data: InputData):
         prediction = pipe.predict(input_df)  # Utiliser le modèle CatBoost
         prediction_int = int(prediction[0])  # Convertir la prédiction en entier si nécessaire
     except Exception as e:
+        sentry_sdk.capture_exception(e)
         raise HTTPException(status_code=500, detail=f"Error during model prediction: {str(e)}")
     experiment = mlflow.get_experiment_by_name("visualisation_predictions_cinéma")
 
@@ -151,13 +165,13 @@ async def predict(data: InputData):
     
 
     # Incrémenter le compteur de prédictions
-    prediction_counter += 1
+    # prediction_counter += 1
 
-    if prediction_counter % 3 == 0:  # Vérifie si le compteur est divisible par 3
-        try:
-            subprocess.Popen(["python", "drift.py"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Error running drift.py: {str(e)}")
+    # if prediction_counter % 3 == 0:  # Vérifie si le compteur est divisible par 3
+    #     try:
+    #         subprocess.Popen(["python", "drift.py"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    #     except Exception as e:
+    #         raise HTTPException(status_code=500, detail=f"Error running drift.py: {str(e)}")
 
     # Retourner la prédiction en tant que réponse de l'API
     return {"prediction": prediction_int}
