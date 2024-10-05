@@ -149,8 +149,8 @@ async def predict(data: InputData):
 
     # Log des paramètres et de la prédiction dans MLflow
     with mlflow.start_run() as run:
-        mlflow.log_params(data.dict())                   # Enregistre les paramètres d'entrée
-        mlflow.log_metric("prediction", prediction_int)  # Enregistre la prédiction
+         mlflow.log_params(data.dict())                   # Enregistre les paramètres d'entrée
+         mlflow.log_metric("prediction", prediction_int)  # Enregistre la prédiction
 
     # Enregistrer la prédiction et les métriques dans SQLite
     try:

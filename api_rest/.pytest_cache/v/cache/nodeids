@@ -7,5 +7,6 @@
   "tests/test_main.py::test_predict_without_token",
   "tests/test_main.py::test_token_generation",
   "tests/test_main.py::test_token_generation_incorrect_credentials",
+  "tests/uni_test.py::TestPredictEndpoint::test_predict_without_token",
   "uni_test.py::TestPredictEndpoint::test_predict_without_token"
 ]

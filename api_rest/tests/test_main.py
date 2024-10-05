@@ -5,44 +5,40 @@ from fastapi.testclient import TestClient
 from jose import jwt
 import sys
 import os
-from modelisation import InputData
+from ..modelisation import InputData
 
 # Ajouter le répertoire parent au sys.path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+current_dir = os.path.dirname(__file__)  # Répertoire actuel du fichier de test
+parent_dir = os.path.join(current_dir, '..')  # Répertoire parent
+sys.path.append(parent_dir)  # Ajoute le répertoire parent au chemin
 
 from master1 import app
 
 client = TestClient(app)
 
-# def get_token(username: str):
-#     SECRET_KEY = os.getenv("SECRET_KEY")
-#     ALGORITHM = "HS256"
-#     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-#     to_encode = {"sub": username, "exp": datetime.utcnow() + access_token_expires}
-#     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-#     return encoded_jwt
 
 def test_token_generation():
+    # Envoie une requête POST pour générer un token avec des identifiants corrects
     response = client.post("/token", data={"username": "admin", "password": "password123"})
-    # assert response.status_code == status.200
+    # Vérifie que la réponse contient bien un access token
     assert "access_token" in response.json()
+    # Vérifie que le type de token est bien de type "bearer"
     assert response.json()["token_type"] == "bearer"
 
 def test_token_generation_incorrect_credentials():
+    # Envoie une requête POST avec des identifiants incorrects
     response = client.post("/token", data={"username": "admin", "password": "wrongpassword"})
-    assert response.status_code == 404     #status.HTTP_401_UNAUTHORIZED 
-    assert response.json() == {"detail": "Incorrect username or password"}
-
-# def test_predict_with_token():
-#     token = get_token("admin")
-#     headers = {"Authorization": f"Bearer {token}"}
-#     response = client.post("/predict/", headers=headers, json={"feature1": 0.5, "feature2": 1.5})
-#     assert response.status_code == status.HTTP_200_OK
-#     assert "prediction" in response.json()
+    # Vérifie que le code de statut est 404
+    assert response.status_code == 404     
+    # Vérifie que le message d'erreur correspond à des identifiants incorrects
+    assert response.json() == {"detail": "Incorrect username or password"} 
 
 def test_predict_without_token():
+    # Envoie une requête POST pour prédire sans fournir de token d'authentification
     response = client.post("/predict/", json={"Hfeature1": 0.5, "feature2": 1.5})
-    assert response.status_code == status.HTTP_403_FORBIDDEN   #status.HTTP_401_UNAUTHORIZED
+    # Vérifie que la réponse est un code 401 (non autorisé)
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    # Vérifie que le message d'erreur indique l'absence d'authentification
     assert response.json() == {"detail": "Not authenticated"}
 
 client = TestClient(app)
@@ -136,5 +132,28 @@ def test_input_data_invalid_entries():
 
     # Test avec un champ vide pour public
     with pytest.raises(ValidationError) as excinfo:
-        InputData(**{**valid_data, "public": ""})
+        InputData(**{**valid_data, "public": ""})# def get_token(username: str):
+#     SECRET_KEY = os.getenv("SECRET_KEY")
+#     ALGORITHM = "HS256"
+#     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+#     to_encode = {"sub": username, "exp": datetime.utcnow() + access_token_expires}
+#     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+#     return encoded_jwt
     assert "Length must be between 1 and 15 characters" in str(excinfo.value)
+
+
+# def test_predict_with_token():
+#     token = get_token("admin")
+#     headers = {"Authorization": f"Bearer {token}"}
+#     response = client.post("/predict/", headers=headers, json={"feature1": 0.5, "feature2": 1.5})
+#     assert response.status_code == status.HTTP_200_OK
+#     assert "prediction" in response.json()
+    
+
+    # def get_token(username: str):
+#     SECRET_KEY = os.getenv("SECRET_KEY")
+#     ALGORITHM = "HS256"
+#     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+#     to_encode = {"sub": username, "exp": datetime.utcnow() + access_token_expires}
+#     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+#     return encoded_jwt

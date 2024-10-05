@@ -8,5 +8,7 @@
   "tests/test_main.py::test_token_generation_incorrect_credentials": true,
   "tests/test_main.py::test_predict_with_invalid_data_types": true,
   "uni_test.py::TestClient": true,
-  "uni_test.py::TestPredictEndpoint": true
+  "uni_test.py::TestPredictEndpoint": true,
+  "construction_modèle_Ml/test_ML/test_modele.py": true,
+  "tests/test_main.py": true
 }
