@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, constr, validator
 import pickle
 import pandas as pd
@@ -15,21 +15,21 @@ from typing import Annotated
 from fastapi.responses import FileResponse
 from fastapi.responses import HTMLResponse
 import subprocess
-import sentry_sdk
+# import sentry_sdk
 from celery_tasks import run_drift_script
 # Charger le pipeline depuis le fichier
 # pipe = joblib.load('pipeline_model.joblib')
 # Créer une classe pour les données d'entrée
-sentry_sdk.init(
-    dsn="https://29402a8f399496504f9eb69c6453a0a6@o4507447356620800.ingest.de.sentry.io/4508039867859024",
-    # Set traces_sample_rate to 1.0 to capture 100%
-    # of transactions for tracing.
-    traces_sample_rate=1.0,
-    # Set profiles_sample_rate to 1.0 to profile 100%
-    # of sampled transactions.
-    # We recommend adjusting this value in production.
-    profiles_sample_rate=1.0,
-)
+# sentry_sdk.init(
+#     dsn="https://29402a8f399496504f9eb69c6453a0a6@o4507447356620800.ingest.de.sentry.io/4508039867859024",
+#     # Set traces_sample_rate to 1.0 to capture 100%
+#     # of transactions for tracing.
+#     traces_sample_rate=1.0,
+#     # Set profiles_sample_rate to 1.0 to profile 100%
+#     # of sampled transactions.
+#     # We recommend adjusting this value in production.
+#     profiles_sample_rate=1.0,
+# )
 
 
 file_path_pkl = os.path.join('construction_modèle_Ml', 'modele_4_ml.pkl')
@@ -60,7 +60,9 @@ class RangeConstraint:
 #     acteur1: Annotated[str, LengthConstraint(1, 30)]
 #     acteur2: Annotated[str, LengthConstraint(1, 30)]
 #     acteur3: Annotated[str, LengthConstraint(1, 30)]
-class InputData(BaseModel):
+        
+
+class donnees_film(BaseModel):
     country: str
     genre: str
     public: str
@@ -74,21 +76,24 @@ class InputData(BaseModel):
 
     @validator('country', 'genre', 'public', 'distributeur', 'directeur', 'acteur1', 'acteur2', 'acteur3')
     def check_length(cls, v):
-        if len(v) < 1 or len(v) > 15:
-            raise ValueError('Length must be between 1 and 15 characters')
+        if len(v) < 1 or len(v) > 25:
+            raise ValueError('La longueur de ce type de donnée ne dépasse pas 25 caractéres')
         return v
 
     @validator('numero_semaine')
     def check_numero_semaine(cls, v):
         if v < 1 or v > 52:
-            raise ValueError('numero_semaine must be between 1 and 52')
+            raise ValueError('les numeros de semaine sont compris entre 1 et 52')
         return v
 
     @validator('durée')
     def check_durée(cls, v):
         if v < 60 or v > 300:
-            raise ValueError('durée must be between 60 and 300 minutes')
+            raise ValueError('la durée de film est ente 60 et 300 minutes')
         return v
+    
+
+    
 ###111#
 # Charger le modèle pickle
 with open('modele_4_ml.pkl', 'rb') as f:
@@ -119,8 +124,64 @@ prediction_counter = 0
 mlflow.set_experiment("visualisation_predictions_cinema")
 mlflow.set_tracking_uri('mlruns')
 
+@router.post("/predict_film/", response_model=donnees_film, dependencies=[Depends(has_access)])
+def predict_film(
+    country: str = Query(..., description="Pays d'origine du film (1-25 caractères)"),
+    genre: str = Query(..., description="Genre du film (1-25 caractères)"),
+    public: str = Query(..., description="Public cible (1-25 caractères)"),
+    distributeur: str = Query(..., description="Nom du distributeur (1-25 caractères)"),
+    numero_semaine: int = Query(..., description="Numéro de la semaine (1-52)", example=12),
+    duree: int = Query(..., description="Durée du film en minutes (60-300)", example=120),
+    directeur: str = Query(..., description="Nom du réalisateur (1-25 caractères)"),
+    acteur1: str = Query(..., description="Premier acteur (1-25 caractères)"),
+    acteur2: str = Query(..., description="Deuxième acteur (1-25 caractères)"),
+    acteur3: str = Query(..., description="Troisième acteur (1-25 caractères)")
+):
+    """
+    Cet endpoint permet de faire une prédiction basée sur les caractéristiques d'un film.
+    
+    L'utilisateur doit fournir :
+    - Le pays d'origine du film (country).
+    - Le genre du film (genre).
+    - Le public cible (public).
+    - Le distributeur (distributeur).
+    - Le numéro de la semaine (numero_semaine) entre 1 et 52.
+    - La durée du film (duree) en minutes.
+    - Les trois principaux acteurs (acteur1, acteur2, acteur3).
+    """
+    
+    # Créer le dataframe pour les données d'entrée
+    input_data = donnees_film(
+        country=country,
+        genre=genre,
+        public=public,
+        distributeur=distributeur,
+        numero_semaine=numero_semaine,
+        durée=duree,
+        directeur=directeur,
+        acteur1=acteur1,
+        acteur2=acteur2,
+        acteur3=acteur3
+    )
+
+    # Charger et exécuter le modèle de prédiction
+    try:
+        prediction = pipe.predict(pd.DataFrame([input_data.dict()]))
+        prediction_int = int(prediction[0])
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur lors de la prédiction: {str(e)}")
+    
+    # Retourner la prédiction
+    return {"prediction": prediction_int}
+
+
+
+
+
+
+
 @router.post("/predict/", dependencies=[Depends(has_access)])
-async def predict(data: InputData):
+async def predict(data: donnees_film):
     
     # Créer un dataframe à partir des données d'entrée
     input_df = pd.DataFrame([data.dict()])
@@ -133,19 +194,17 @@ async def predict(data: InputData):
     #     raise HTTPException(status_code=500, detail=f"Error during data preprocessing: {str(e)}")
 
     # Faire la prédiction avec le modèle CatBoost après prétraitement
-    try:
-        prediction = pipe.predict(input_df)  # Utiliser le modèle CatBoost
-        prediction_int = int(prediction[0])  # Convertir la prédiction en entier si nécessaire
-    except Exception as e:
-        sentry_sdk.capture_exception(e)
-        raise HTTPException(status_code=500, detail=f"Error during model prediction: {str(e)}")
+   
+    prediction = pipe.predict(input_df)  # Utiliser le modèle CatBoost
+    prediction_int = int(prediction[0])  # Convertir la prédiction en entier si nécessaire
+   
     experiment = mlflow.get_experiment_by_name("visualisation_predictions_cinéma")
 
 # Si l'expérience n'existe pas, elle est créée
     if experiment is None:
-        experiment_id = mlflow.create_experiment("visualisation_predictions_cinéma")
+            experiment_id = mlflow.create_experiment("visualisation_predictions_cinéma")
     else:
-        experiment_id = experiment.experiment_id
+            experiment_id = experiment.experiment_id
 
     # Log des paramètres et de la prédiction dans MLflow
     with mlflow.start_run() as run:
@@ -175,38 +234,6 @@ async def predict(data: InputData):
 
     # Retourner la prédiction en tant que réponse de l'API
     return {"prediction": prediction_int}
-
-
-
-
-
-
-
-# @router.post("/predict/", dependencies=[Depends(has_access)])
-# async def predict(data: InputData):
-#     # Crée un dataframe à partir des données d'entrée
-#     input_df = pd.DataFrame([data.dict()])
-
-#     mlflow.set_experiment("visualisation_predictions_cinéma")
-#     # Faire la prédiction avec le modèlefrom fastapi.responses import HTMLResponse
-#     prediction = model.predict(input_df)
-#     with mlflow.start_run() as run:
-#     # Enregistre les paramètres d'entrée
-#         mlflow.log_params(data.dict())  
-#     # Enregistre la prédiction
-#         mlflow.log_metric("prediction", prediction[0])  
-    
-    
-#     # Enregistrement de la prédiction et les métriques dans SQLite
-#     conn = get_db_connection()
-#     conn.execute('''
-#     INSERT INTO predictions (country, genre, numero_semaine, duree, prediction)
-#     VALUES (?, ?, ?, ?, ?)
-#     ''', (data.country, data.genre, data.numero_semaine, data.durée, round(prediction[0])))
-#     conn.commit()
-#     conn.close()
-#     # Retourne la prédiction à l'utilisateur de l'API
-#     return {"prediction": prediction[0]}
 
 #endpoint pour faciliter l'utilisateur à avoir accés au numéro de semaien concerné par la semaine de sortie sur laquelle est demandée la prédiction
 @router.get("/images/numero_semaine.png")
@@ -245,4 +272,6 @@ async def read_root():
         </body>
     </html>
     """
+
+
 
