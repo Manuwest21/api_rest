@@ -16,7 +16,7 @@ from fastapi.responses import FileResponse
 from fastapi.responses import HTMLResponse
 import subprocess
 # import sentry_sdk
-from celery_tasks import run_drift_script
+
 # Charger le pipeline depuis le fichier
 # pipe = joblib.load('pipeline_model.joblib')
 # Créer une classe pour les données d'entrée
@@ -124,55 +124,55 @@ prediction_counter = 0
 mlflow.set_experiment("visualisation_predictions_cinema")
 mlflow.set_tracking_uri('mlruns')
 
-@router.post("/predict_film/", response_model=donnees_film, dependencies=[Depends(has_access)])
-def predict_film(
-    country: str = Query(..., description="Pays d'origine du film (1-25 caractères)"),
-    genre: str = Query(..., description="Genre du film (1-25 caractères)"),
-    public: str = Query(..., description="Public cible (1-25 caractères)"),
-    distributeur: str = Query(..., description="Nom du distributeur (1-25 caractères)"),
-    numero_semaine: int = Query(..., description="Numéro de la semaine (1-52)", example=12),
-    duree: int = Query(..., description="Durée du film en minutes (60-300)", example=120),
-    directeur: str = Query(..., description="Nom du réalisateur (1-25 caractères)"),
-    acteur1: str = Query(..., description="Premier acteur (1-25 caractères)"),
-    acteur2: str = Query(..., description="Deuxième acteur (1-25 caractères)"),
-    acteur3: str = Query(..., description="Troisième acteur (1-25 caractères)")
-):
-    """
-    Cet endpoint permet de faire une prédiction basée sur les caractéristiques d'un film.
+# @router.post("/predict_film/", response_model=donnees_film, dependencies=[Depends(has_access)])
+# def predict_film(
+#     country: str = Query(..., description="Pays d'origine du film (1-25 caractères)"),
+#     genre: str = Query(..., description="Genre du film (1-25 caractères)"),
+#     public: str = Query(..., description="Public cible (1-25 caractères)"),
+#     distributeur: str = Query(..., description="Nom du distributeur (1-25 caractères)"),
+#     numero_semaine: int = Query(..., description="Numéro de la semaine (1-52)", example=12),
+#     duree: int = Query(..., description="Durée du film en minutes (60-300)", example=120),
+#     directeur: str = Query(..., description="Nom du réalisateur (1-25 caractères)"),
+#     acteur1: str = Query(..., description="Premier acteur (1-25 caractères)"),
+#     acteur2: str = Query(..., description="Deuxième acteur (1-25 caractères)"),
+#     acteur3: str = Query(..., description="Troisième acteur (1-25 caractères)")
+# ):
+#     """
+#     Cet endpoint permet de faire une prédiction basée sur les caractéristiques d'un film.
     
-    L'utilisateur doit fournir :
-    - Le pays d'origine du film (country).
-    - Le genre du film (genre).
-    - Le public cible (public).
-    - Le distributeur (distributeur).
-    - Le numéro de la semaine (numero_semaine) entre 1 et 52.
-    - La durée du film (duree) en minutes.
-    - Les trois principaux acteurs (acteur1, acteur2, acteur3).
-    """
+#     L'utilisateur doit fournir :
+#     - Le pays d'origine du film (country).
+#     - Le genre du film (genre).
+#     - Le public cible (public).
+#     - Le distributeur (distributeur).
+#     - Le numéro de la semaine (numero_semaine) entre 1 et 52.
+#     - La durée du film (duree) en minutes.
+#     - Les trois principaux acteurs (acteur1, acteur2, acteur3).
+#     """
     
-    # Créer le dataframe pour les données d'entrée
-    input_data = donnees_film(
-        country=country,
-        genre=genre,
-        public=public,
-        distributeur=distributeur,
-        numero_semaine=numero_semaine,
-        durée=duree,
-        directeur=directeur,
-        acteur1=acteur1,
-        acteur2=acteur2,
-        acteur3=acteur3
-    )
+#     # Créer le dataframe pour les données d'entrée
+#     input_data = donnees_film(
+#         country=country,
+#         genre=genre,
+#         public=public,
+#         distributeur=distributeur,
+#         numero_semaine=numero_semaine,
+#         durée=duree,
+#         directeur=directeur,
+#         acteur1=acteur1,
+#         acteur2=acteur2,
+#         acteur3=acteur3
+#     )
 
-    # Charger et exécuter le modèle de prédiction
-    try:
-        prediction = pipe.predict(pd.DataFrame([input_data.dict()]))
-        prediction_int = int(prediction[0])
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erreur lors de la prédiction: {str(e)}")
+#     # Charger et exécuter le modèle de prédiction
+#     try:
+#         prediction = pipe.predict(pd.DataFrame([input_data.dict()]))
+#         prediction_int = int(prediction[0])
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"Erreur lors de la prédiction: {str(e)}")
     
-    # Retourner la prédiction
-    return {"prediction": prediction_int}
+#     # Retourner la prédiction
+#     return {"prediction": prediction_int}
 
 
 
